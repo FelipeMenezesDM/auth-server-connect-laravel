@@ -1,10 +1,10 @@
 {
-  "name": "felipemenezesdm/general-laravel-library-template",
-  "description": "Modelo para criação de bibliotecas para Laravel",
+  "name": "felipemenezesdm/auth-server-connect-laravel",
+  "description": "Biblioteca Laravel para conexão com o Auth Server",
   "type": "library",
   "autoload": {
     "psr-4": {
-      "FelipeMenezesDM\\GeneralLaravelLibraryTemplate\\": "src/"
+      "FelipeMenezesDM\\AuthServerConnectLaravel\\": "src/"
     }
   },
   "minimum-stability": "stable",
@@ -15,6 +15,10 @@
     }
   ],
   "require": {
-    "php": "^8.1"
+    "php": "^8.1",
+    "illuminate/support": ">=9.0",
+    "guzzlehttp/guzzle": "^7.0",
+    "ramsey/uuid": "^4.7",
+    "felipemenezesdm/laravel-secret-manager-suite": "^1.0"
   }
 }
