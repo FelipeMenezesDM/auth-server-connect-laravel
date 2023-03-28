@@ -56,6 +56,7 @@ class AuthServerConnect
             foreach($controller->getProperties() as $field) {
                 if($field->getType()?->getName() === AuthServerToken::class && $field->isStatic()) {
                     $field->setValue($controller, $this->authServerService->authorize());
+                    break;
                 }
             }
         }
