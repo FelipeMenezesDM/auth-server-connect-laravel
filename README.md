@@ -3,7 +3,6 @@ Biblioteca de integração com o Auth Server para geração de tokens de acesso 
 
 ## Tópicos
 - [Instalação](#instalação)
-- [Deploy manual](#deploy-manual)
 - [Geração de tokens](#geração-de-tokens)
     - [Configuração básica](#configuração-básica)
     - [Provedores](#provedores)
