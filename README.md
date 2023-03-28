@@ -15,6 +15,20 @@ Execute o comando abaixo para instalar a biblioteca:
 composer require felipemenezesdm/auth-server-connect-laravel:^1.0
 ```
 
+No arquivo **app > app > Http > Kernel.php**, informe o seguinte valor `\App\Http\Middleware\AuthServerConnect::class`:
+```php
+protected $middlewareGroups = [
+  'web' => [
+      // [...]
+      \App\Http\Middleware\AuthServerConnect::class,
+  ],
+  
+  'api' => [
+      // [...]
+  ],
+];
+```
+
 ## Geração de tokens
 ### Configuração básica
 Após a instalação da lib, é possível utilizar o atributo #[AuthServerConnection] nos controladores da aplicação: 
