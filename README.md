@@ -19,12 +19,13 @@ No arquivo **app > app > Http > Kernel.php**, informe o seguinte valor `\App\Htt
 ```php
 protected $middlewareGroups = [
   'web' => [
-      // [...]
-      \App\Http\Middleware\AuthServerConnect::class,
+      // [...],
+      \FelipeMenezesDM\AuthServerConnectLaravel\Middleware\AuthServerConnect::class,
   ],
   
   'api' => [
-      // [...]
+      // [...],
+      \FelipeMenezesDM\AuthServerConnectLaravel\Middleware\AuthServerConnect::class,
   ],
 ];
 ```

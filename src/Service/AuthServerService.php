@@ -64,7 +64,7 @@ class AuthServerService
         }catch(ClientException $e) {
             throw new DynamicException($e->getMessage(), $e->getResponse()->getStatusCode());
         } catch (GuzzleException $e) {
-            throw new DynamicException($e->getMessage(), 401);
+            throw new DynamicException($e->getMessage(), 403);
         }
     }
 
@@ -82,7 +82,7 @@ class AuthServerService
         }catch(ClientException $e) {
             throw new DynamicException($e->getMessage(), $e->getResponse()->getStatusCode());
         } catch (GuzzleException $e) {
-            throw new DynamicException($e->getMessage(), 401);
+            throw new DynamicException($e->getMessage(), 403);
         }
     }
 }
