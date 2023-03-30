@@ -34,8 +34,8 @@ class AuthServerConnect
      */
     public function handle(Request $request, Closure $next) : mixed
     {
-        $controller = Route::getCurrentRoute()->getController();
-        $action = Route::getCurrentRoute()->getActionMethod();
+        $controller = Route::getCurrentRoute()?->getController();
+        $action = Route::getCurrentRoute()?->getActionMethod();
 
         if(!is_null($controller)) {
             $controller = new ReflectionObject($controller);
