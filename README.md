@@ -160,6 +160,11 @@ Descrição de todas as propriedades de configuração disponíveis para a bibli
     - **descrição:** escopos para geração do token, seperados por vírgula. Ex: scope1,scope2,scope2
     - **obrigatório:** não
     - **padrão:** null
+- **AUTH_SERVER_TIMEOUT:**
+  - **tipo:** _integer_
+  - **descrição:** tempo limite de resposta para o servidor do Auth Server em milissegundos.
+  - **obrigatório:** não
+  - **padrão:** 300
 - **AUTH_SERVER_PROVIDER:**
     - **tipo:** _string_
     - **descrição:** tipo de provedor de credencials. Atualmente disponíveis: **environment**, **aws** e **gcp**

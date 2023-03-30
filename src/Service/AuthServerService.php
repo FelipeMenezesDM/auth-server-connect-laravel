@@ -9,6 +9,7 @@ use FelipeMenezesDM\AuthServerConnectLaravel\Infrastructure\Exceptions\DynamicEx
 use FelipeMenezesDM\AuthServerConnectLaravel\Infrastructure\Props\AuthServerProps;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\GuzzleException;
 use Ramsey\Uuid\Uuid;
 
@@ -16,15 +17,12 @@ class AuthServerService
 {
     private static ?AuthServerService $authServerService = null;
 
-    private AuthServerToken $authServerToken;
-
     private CredentialsService $credentialsService;
 
     private AuthServerProps $authServerProps;
 
     public function __construct()
     {
-        $this->authServerToken = AuthServerToken::getInstance();
         $this->credentialsService = CredentialsService::getInstance();
         $this->authServerProps = AuthServerProps::getInstance();
     }
@@ -41,29 +39,41 @@ class AuthServerService
     public function authorize() : AuthServerToken
     {
         $dateTime = Carbon::now();
+        $credentials = $this->credentialsService->getCredentials();
+        $clientId = $credentials[$this->authServerProps->getAuthServerClientIdKey()];
+        $clientSecret = $credentials[$this->authServerProps->getAuthServerClientSecretKey()];
+        $hash = hash('sha512', $clientId . '/' . $clientSecret);
+        $authServerToken = cache($hash);
 
         try {
-            if (!$this->authServerToken->getExpirationDateTime() || $dateTime->isAfter($this->authServerToken->getExpirationDateTime())) {
-                $credentials = $this->credentialsService->getCredentials();
+            if(!$authServerToken || !$authServerToken->getExpirationDateTime() || $dateTime->isAfter($authServerToken->getExpirationDateTime())) {
                 $response = json_decode(((new Client())->post($this->authServerProps->getAuthServerTokenUri(), [
-                    'json' => [
-                        'client_id' => $credentials[$this->authServerProps->getAuthServerClientIdKey()],
-                        'client_secret' => $credentials[$this->authServerProps->getAuthServerClientSecretKey()],
-                        'grant_type' => $this->authServerProps->getAuthServerGrantType(),
-                        'scope' => implode(',', $this->authServerProps->getAuthServerScopes() ?? ''),
-                        'redirect_uri' => $this->authServerProps->getAuthServerRedirectUri(),
+                    'timeout'           => $this->authServerProps->getAuthServerTimeout(),
+                    'connect_timeout'   => $this->authServerProps->getAuthServerTimeout(),
+                    'json'              => [
+                        'client_id'     => $clientId,
+                        'client_secret' => $clientSecret,
+                        'grant_type'    => $this->authServerProps->getAuthServerGrantType(),
+                        'scope'         => implode(',', $this->authServerProps->getAuthServerScopes() ?? ''),
+                        'redirect_uri'  => $this->authServerProps->getAuthServerRedirectUri(),
                     ]
                 ]))->getBody()->getContents(), true);
 
                 $dateTime->addSeconds($response['expires_in']);
-                $this->authServerToken->setAuthorizedClient($response);
-                $this->authServerToken->setExpirationDateTime($dateTime);
+
+                $authServerToken = AuthServerToken::getInstance();
+                $authServerToken->setAuthorizedClient($response);
+                $authServerToken->setExpirationDateTime($dateTime);
+
+                cache([$hash => $authServerToken], $authServerToken->getExpiresIn());
             }
 
-            return $this->authServerToken;
+            return $authServerToken;
         }catch(ClientException $e) {
             throw new DynamicException($e->getMessage(), $e->getResponse()->getStatusCode());
-        } catch (GuzzleException $e) {
+        }catch(ConnectException $e) {
+            throw new DynamicException($e->getMessage(), 504);
+        }catch(GuzzleException $e) {
             throw new DynamicException($e->getMessage(), 403);
         }
     }
@@ -73,15 +83,17 @@ class AuthServerService
         try {
             if ($this->authServerProps->getAuthServerEnabled()) {
                 (new Client())->get($this->authServerProps->getAuthServerAssetUri() . '?scopes=' . implode(',', $scopes ?? []), [
-                    'headers' => [
-                        General::STR_AUTHORIZATION => $token,
+                    'timeout'           => $this->authServerProps->getAuthServerTimeout(),
+                    'connect_timeout'   => $this->authServerProps->getAuthServerTimeout(),
+                    'headers'           => [
+                        General::STR_AUTHORIZATION  => $token,
                         General::STR_CORRELATION_ID => $correlationId ?? Uuid::uuid4()->toString(),
                     ]
                 ]);
             }
-        }catch(ClientException $e) {
-            throw new DynamicException($e->getMessage(), $e->getResponse()->getStatusCode());
-        } catch (GuzzleException $e) {
+        }catch(ConnectException $e) {
+            throw new DynamicException($e->getMessage(), 504);
+        }catch(GuzzleException $e) {
             throw new DynamicException($e->getMessage(), 403);
         }
     }
