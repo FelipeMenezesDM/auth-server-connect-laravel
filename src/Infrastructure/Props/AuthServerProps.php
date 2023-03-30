@@ -50,6 +50,11 @@ class AuthServerProps
         return explode(',', env('AUTH_SERVER_SCOPES', ''));
     }
 
+    public function getAuthServerTimeout() : int
+    {
+        return env('AUTH_SERVER_TIMEOUT', 300) / 1000;
+    }
+
     public function getAuthServerProvider() : string
     {
         return env('AUTH_SERVER_PROVIDER', 'environment');

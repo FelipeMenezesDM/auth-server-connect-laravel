@@ -48,8 +48,8 @@ class AuthServerService
         try {
             if(!$authServerToken || !$authServerToken->getExpirationDateTime() || $dateTime->isAfter($authServerToken->getExpirationDateTime())) {
                 $response = json_decode(((new Client())->post($this->authServerProps->getAuthServerTokenUri(), [
-                    'timeout'           => env('AUTH_SERVER_TIMEOUT', 300) / 1000,
-                    'connect_timeout'   => env('AUTH_SERVER_TIMEOUT', 300) / 1000,
+                    'timeout'           => $this->authServerProps->getAuthServerTimeout(),
+                    'connect_timeout'   => $this->authServerProps->getAuthServerTimeout(),
                     'json'              => [
                         'client_id'     => $clientId,
                         'client_secret' => $clientSecret,
@@ -83,8 +83,8 @@ class AuthServerService
         try {
             if ($this->authServerProps->getAuthServerEnabled()) {
                 (new Client())->get($this->authServerProps->getAuthServerAssetUri() . '?scopes=' . implode(',', $scopes ?? []), [
-                    'timeout'           => env('AUTH_SERVER_TIMEOUT', 300) / 1000,
-                    'connect_timeout'   => env('AUTH_SERVER_TIMEOUT', 300) / 1000,
+                    'timeout'           => $this->authServerProps->getAuthServerTimeout(),
+                    'connect_timeout'   => $this->authServerProps->getAuthServerTimeout(),
                     'headers'           => [
                         General::STR_AUTHORIZATION  => $token,
                         General::STR_CORRELATION_ID => $correlationId ?? Uuid::uuid4()->toString(),
