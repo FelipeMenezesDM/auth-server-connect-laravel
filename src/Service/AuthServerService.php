@@ -42,7 +42,7 @@ class AuthServerService
         $credentials = $this->credentialsService->getCredentials();
         $clientId = $credentials[$this->authServerProps->getAuthServerClientIdKey()];
         $clientSecret = $credentials[$this->authServerProps->getAuthServerClientSecretKey()];
-        $hash = hash('sha512', $clientId . '/' . $clientSecret);
+        $hash = sprintf('credentials[%s]', hash('sha512',$clientId . '/' . $clientSecret));
         $authServerToken = cache($hash);
 
         try {
