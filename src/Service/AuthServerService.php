@@ -17,14 +17,14 @@ class AuthServerService
 {
     private static ?AuthServerService $authServerService = null;
 
-    private CredentialsService $credentialsService;
-
     private AuthServerProps $authServerProps;
+
+    private array $credentials;
 
     public function __construct()
     {
-        $this->credentialsService = CredentialsService::getInstance();
         $this->authServerProps = AuthServerProps::getInstance();
+        $this->credentials = CredentialsService::getInstance()->getCredentials();
     }
 
     public static function getInstance() : AuthServerService
@@ -39,34 +39,73 @@ class AuthServerService
     public function authorize() : AuthServerToken
     {
         $dateTime = Carbon::now();
-        $credentials = $this->credentialsService->getCredentials();
-        $clientId = $credentials[$this->authServerProps->getAuthServerClientIdKey()];
-        $clientSecret = $credentials[$this->authServerProps->getAuthServerClientSecretKey()];
-        $hash = sprintf('credentials[%s]', hash('sha512',$clientId . '/' . $clientSecret));
-        $authServerToken = cache($hash);
+        $authServerToken = $this->getToken();
 
+        if(!$authServerToken || !$authServerToken->getExpirationDateTime() || $dateTime->isAfter($authServerToken->getExpirationDateTime())) {
+            $authServerToken = $this->generateToken(($authServerToken->getRefreshToken() ? 'refresh_token' : 'client_credentials'), [
+                'refresh_token' => $authServerToken->getRefreshToken(),
+            ]);
+        }
+
+        return $authServerToken;
+    }
+
+    public function grantPassword(?string $username, ?string $password) : AuthServerToken
+    {
+        return $this->generateToken('password', [
+            'username'  => $username,
+            'password'  => $password,
+        ]);
+    }
+
+    public function validate(string $token, ?string $correlationId, ?string $flowId, ?string $apiKey, ?array $scopes) : void
+    {
         try {
-            if(!$authServerToken || !$authServerToken->getExpirationDateTime() || $dateTime->isAfter($authServerToken->getExpirationDateTime())) {
-                $response = json_decode(((new Client())->post($this->authServerProps->getAuthServerTokenUri(), [
+            if ($this->authServerProps->getAuthServerEnabled()) {
+                (new Client())->get($this->authServerProps->getAuthServerAssetUri() . '?scopes=' . implode(',', $scopes ?? []), [
                     'timeout'           => $this->authServerProps->getAuthServerTimeout(),
                     'connect_timeout'   => $this->authServerProps->getAuthServerTimeout(),
-                    'json'              => [
-                        'client_id'     => $clientId,
-                        'client_secret' => $clientSecret,
-                        'grant_type'    => $this->authServerProps->getAuthServerGrantType(),
-                        'scope'         => implode(',', $this->authServerProps->getAuthServerScopes() ?? ''),
-                        'redirect_uri'  => $this->authServerProps->getAuthServerRedirectUri(),
+                    'headers'           => [
+                        General::STR_AUTHORIZATION  => $token,
+                        General::STR_CORRELATION_ID => $correlationId ?? Uuid::uuid4()->toString(),
+                        General::STR_FLOW_ID        => $flowId,
+                        General::STR_API_KEY        => $apiKey,
                     ]
-                ]))->getBody()->getContents(), true);
-
-                $dateTime->addSeconds($response['expires_in']);
-
-                $authServerToken = AuthServerToken::getInstance();
-                $authServerToken->setAuthorizedClient($response);
-                $authServerToken->setExpirationDateTime($dateTime);
-
-                cache([$hash => $authServerToken], $authServerToken->getExpiresIn());
+                ]);
             }
+        }catch(ConnectException $e) {
+            throw new DynamicException($e->getMessage(), 504);
+        }catch(GuzzleException $e) {
+            throw new DynamicException($e->getMessage(), 403);
+        }
+    }
+
+    public function getToken() : ?AuthServerToken
+    {
+        return cache($this->getCacheHash()) ?? AuthServerToken::getInstance();
+    }
+
+    private function generateToken(string $grantType, array $opts = []) : AuthServerToken
+    {
+        try {
+            $response = json_decode(((new Client())->post($this->authServerProps->getAuthServerTokenUri(), [
+                'timeout'           => $this->authServerProps->getAuthServerTimeout(),
+                'connect_timeout'   => $this->authServerProps->getAuthServerTimeout(),
+                'json'              => [
+                    'client_id'     => $this->credentials[$this->authServerProps->getAuthServerClientIdKey()],
+                    'client_secret' => $this->credentials[$this->authServerProps->getAuthServerClientSecretKey()],
+                    'grant_type'    => $grantType,
+                    'redirect_uri'  => $this->authServerProps->getAuthServerRedirectUri(),
+                    'scope'         => implode(',', $this->authServerProps->getAuthServerScopes() ?? ''),
+                    ...$opts,
+                ]
+            ]))->getBody()->getContents(), true);
+
+            $authServerToken = AuthServerToken::getInstance();
+            $authServerToken->setAuthorizedClient($response);
+            $authServerToken->setExpirationDateTime((Carbon::now())->addSeconds($response['expires_in']));
+
+            cache([$this->getCacheHash() => $authServerToken], $authServerToken->getExpiresIn());
 
             return $authServerToken;
         }catch(ClientException $e) {
@@ -78,23 +117,11 @@ class AuthServerService
         }
     }
 
-    public function validate(string $token, string|null $correlationId, array|null $scopes) : void
+    private function getCacheHash() : string
     {
-        try {
-            if ($this->authServerProps->getAuthServerEnabled()) {
-                (new Client())->get($this->authServerProps->getAuthServerAssetUri() . '?scopes=' . implode(',', $scopes ?? []), [
-                    'timeout'           => $this->authServerProps->getAuthServerTimeout(),
-                    'connect_timeout'   => $this->authServerProps->getAuthServerTimeout(),
-                    'headers'           => [
-                        General::STR_AUTHORIZATION  => $token,
-                        General::STR_CORRELATION_ID => $correlationId ?? Uuid::uuid4()->toString(),
-                    ]
-                ]);
-            }
-        }catch(ConnectException $e) {
-            throw new DynamicException($e->getMessage(), 504);
-        }catch(GuzzleException $e) {
-            throw new DynamicException($e->getMessage(), 403);
-        }
+        $clientId = $this->credentials[$this->authServerProps->getAuthServerClientIdKey()];
+        $clientSecret = $this->credentials[$this->authServerProps->getAuthServerClientSecretKey()];
+
+        return sprintf('credentials[%s]', hash('sha512', $clientId . '/' . $clientSecret));
     }
 }
