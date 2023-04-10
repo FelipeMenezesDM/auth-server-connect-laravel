@@ -33,17 +33,17 @@ class AuthServerToken
 
     public function getAccessToken() : string
     {
-        return $this->authorizedCliente['access_token'];
+        return $this->authorizedCliente ? $this->authorizedCliente['access_token'] : null;
     }
 
     public function getRefreshToken() : string
     {
-        return $this->authorizedCliente['refresh_token'];
+        return $this->authorizedCliente ? $this->authorizedCliente['refresh_token'] : null;
     }
 
     public function getExpiresIn() : int
     {
-        return $this->authorizedCliente['expires_in'];
+        return $this->authorizedCliente ? $this->authorizedCliente['expires_in'] : null;
     }
 
     public function getExpirationDateTime() : ?Carbon

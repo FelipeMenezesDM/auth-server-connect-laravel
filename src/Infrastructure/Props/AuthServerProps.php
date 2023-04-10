@@ -40,11 +40,6 @@ class AuthServerProps
         return env('AUTH_SERVER_REDIRECT_URI', '');
     }
 
-    public function getAuthServerGrantType() : string
-    {
-        return env('AUTH_SERVER_GRANT_TYPE', 'client_credentials');
-    }
-
     public function getAuthServerScopes() : array
     {
         return explode(',', env('AUTH_SERVER_SCOPES', ''));

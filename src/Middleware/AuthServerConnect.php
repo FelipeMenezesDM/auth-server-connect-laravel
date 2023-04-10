@@ -72,7 +72,13 @@ class AuthServerConnect
             $actionScopes = array_shift($validationAttributesAction)?->newInstance()->getScopes();
             $scopes = array_values(array_unique(array_merge($controllerScopes??[], $actionScopes??[])));
 
-            $this->authServerService->validate($request->header(General::STR_AUTHORIZATION), $request->header(General::STR_CORRELATION_ID), $scopes);
+            $this->authServerService->validate(
+                $request->header(General::STR_AUTHORIZATION),
+                $request->header(General::STR_CORRELATION_ID),
+                $request->header(General::STR_FLOW_ID),
+                $request->header(General::STR_API_KEY),
+                $scopes
+            );
         }
     }
 }
