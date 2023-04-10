@@ -31,17 +31,17 @@ class AuthServerToken
         $this->expirationDateTime = $expirationDateTime;
     }
 
-    public function getAccessToken() : string
+    public function getAccessToken() : ?string
     {
         return $this->authorizedCliente ? $this->authorizedCliente['access_token'] : null;
     }
 
-    public function getRefreshToken() : string
+    public function getRefreshToken() : ?string
     {
         return $this->authorizedCliente ? $this->authorizedCliente['refresh_token'] : null;
     }
 
-    public function getExpiresIn() : int
+    public function getExpiresIn() : ?int
     {
         return $this->authorizedCliente ? $this->authorizedCliente['expires_in'] : null;
     }
